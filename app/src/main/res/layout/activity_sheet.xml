@@ -6,8 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".SheetActivity">
 
-<!--    <include-->
-<!--        layout="@layout/toolbar"/>-->
 
     <ScrollView
         android:layout_width="wrap_content"

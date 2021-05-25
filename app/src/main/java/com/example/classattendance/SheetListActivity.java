@@ -4,8 +4,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.Image;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ListView;
 
 import com.example.classattendance.ui.DatabaseHelper;
@@ -17,10 +20,20 @@ public class SheetListActivity extends AppCompatActivity {
     ArrayAdapter adapter;
     ArrayList<String> listItems = new ArrayList<>();
     Long cid;
+    ImageButton backbtn,savebtn;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sheet_list);
+
+        //back button functionality
+        backbtn = findViewById(R.id.backButton);
+        backbtn.setOnClickListener(v->onBackPressed());
+
+        // hide save button
+        savebtn = findViewById(R.id.iconSave);
+        savebtn.setVisibility(View.INVISIBLE);
+
 
         cid = getIntent().getLongExtra("cid",-1);
         loadListItem();
