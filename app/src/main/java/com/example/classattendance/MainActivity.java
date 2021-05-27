@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
             int id = cursor.getInt(cursor.getColumnIndex(dbhelper.C_ID));
             String className = cursor.getString(cursor.getColumnIndex(dbhelper.CLASS_NAME_KEY));
             String subjectName = cursor.getString(cursor.getColumnIndex(dbhelper.SUBJECT_NAME_KEY));
-            Log.e("pritom",id+className+subjectName+"           ");
+//            Log.e("pritom",id+className+subjectName+"           ");
             classItems.add(new ClassItem(id,className,subjectName));
         }
     }
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void goToItemActivity(int position) {
-        Intent intent = new Intent(this, StudentActivity.class);
+        Intent intent = new Intent(this, AttendanceActivity.class);
         intent.putExtra("className",classItems.get(position).getClassName());
         intent.putExtra("subjectName",classItems.get(position).getSubjectName());
         intent.putExtra("position",position);
@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void addClass(String className,String subName) {
         long cid = dbhelper.addClass(className,subName);
-        Log.e("pritom","cid is "+cid);
+//        Log.e("pritom","cid is "+cid);
         ClassItem classItem = new ClassItem(cid,className,subName);
 
         classItems.add(classItem);
