@@ -9,4 +9,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="present">#3335C500</color>
     <color name="absent">#33FF0000</color>
+    <color name="purple">#553098</color>
 </resources>
