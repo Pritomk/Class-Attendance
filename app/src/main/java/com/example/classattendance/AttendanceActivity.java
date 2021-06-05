@@ -20,9 +20,13 @@ import com.example.classattendance.ui.AttendanceAdapter;
 import com.example.classattendance.ui.DatabaseHelper;
 import com.example.classattendance.ui.MyCalender;
 import com.example.classattendance.ui.StudentItem;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.lorentzos.flingswipe.SwipeFlingAdapterView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AttendanceActivity extends AppCompatActivity {
 
@@ -39,6 +43,10 @@ public class AttendanceActivity extends AppCompatActivity {
     MyCalender calender = new MyCalender();
     TextView subTitle;
     int pos;
+    String uid,fire_cid;
+    FirebaseDatabase database;
+    DatabaseReference reference;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +61,13 @@ public class AttendanceActivity extends AppCompatActivity {
         className = i.getStringExtra("className");
         subjectName = i.getStringExtra("subjectName");
         position = i.getIntExtra("position",-1);
+        uid = i.getStringExtra("uid");
+        fire_cid = i.getStringExtra("fire_cid");
+
+
         subTitle = findViewById(R.id.subtitle_toolbar);
+
+        database = FirebaseDatabase.getInstance();
 
         pos = 0;
 
@@ -108,12 +122,10 @@ public class AttendanceActivity extends AppCompatActivity {
             long sid = cursor.getLong(cursor.getColumnIndex(DatabaseHelper.S_ID));
             int roll = cursor.getInt(cursor.getColumnIndex(DatabaseHelper.STUDENT_ROLL_KEY));
             String name = cursor.getString(cursor.getColumnIndex(DatabaseHelper.STUDENT_NAME_KEY));
-//            Log.e("pritom",name+roll+sid+"0");
 
             studentItems.add(new StudentItem(sid,name,roll));
             stlist.add(new StudentItem(sid,name,roll));
         }
-//        adapter.notifyDataSetChanged();
         cursor.close();
     }
 
@@ -152,6 +164,9 @@ public class AttendanceActivity extends AppCompatActivity {
         intent.putExtra("subjectName",subjectName);
         intent.putExtra("position",position);
         intent.putExtra("cid",cid);
+        intent.putExtra("uid",uid);
+        intent.putExtra("fire_cid",fire_cid);
+
         startActivity(intent);
     }
 
@@ -175,9 +190,25 @@ public class AttendanceActivity extends AppCompatActivity {
             if (value == -1) {
                 dbhelper.updateStatus(studentItem.getSid(),cid,calender.getDate(),status);
             }
-
+            //Firebase status save
+            reference = database.getReference(uid).child(cid+"").child("student").child(studentItem.getSid()+"");
+            Map<String,Object> map = new HashMap<>();
+            map.put("studentName",studentItem.getName());
+            map.put(changeDateFormat(calender.getDate()),status);
+            reference.updateChildren(map);
         }
         makeToast(AttendanceActivity.this,"Attendance saved");         // To add
+    }
+    private String changeDateFormat(String date) {
+        String res = "";
+        for (int i = 0;i < date.length();i++) {
+            if (date.charAt(i) == '.') {
+                res += '-';
+                continue;
+            }
+            res += date.charAt(i);
+        }
+        return res;
     }
 
 }

@@ -79,6 +79,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_CLASS_TABLE);
         db.execSQL(CREATE_STUDENT_TABLE);
         db.execSQL(CREATE_STATUS_TABLE);
+        
     }
 
     @Override
