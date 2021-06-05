@@ -20,15 +20,19 @@ import com.example.classattendance.ui.MyCalender;
 import com.example.classattendance.ui.MyDialog;
 import com.example.classattendance.ui.StudentAdapter;
 import com.example.classattendance.ui.StudentItem;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StudentActivity extends AppCompatActivity {
     Toolbar toolbar;
     Intent intent;
-    String className,subjectName;
+    String className,subjectName,uid,fire_cid;
     int position;
     RecyclerView recyclerView;
     StudentAdapter adapter;
@@ -38,13 +42,13 @@ public class StudentActivity extends AppCompatActivity {
     long cid;
     MyCalender calender;
     TextView subTitle;
+    FirebaseDatabase database;
+    DatabaseReference reference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student);
-//        studentItems.add(new StudentItem("Pritom",28));
-//        studentItems.add(new StudentItem("Rahul","29"));
 
         calender = new MyCalender();
         intent = getIntent();
@@ -52,8 +56,14 @@ public class StudentActivity extends AppCompatActivity {
         subjectName = intent.getStringExtra("subjectName");
         position = intent.getIntExtra("position",0);
         cid = intent.getLongExtra("cid",-1);
-//        Log.e("pritom",cid+"");
+        uid = intent.getStringExtra("uid");
+        fire_cid = intent.getStringExtra("fire_cid");
+        Log.e("fireid",fire_cid+"");
+
         dbhelper = new DatabaseHelper(this);
+
+        // Firebase
+        database = FirebaseDatabase.getInstance();
 
         setToolbar();
         loadData();
@@ -79,7 +89,6 @@ public class StudentActivity extends AppCompatActivity {
             studentItems.add(new StudentItem(sid,name,roll));
 
         }
-//        adapter.notifyDataSetChanged();
         cursor.close();
     }
 
@@ -115,11 +124,21 @@ public class StudentActivity extends AppCompatActivity {
         for (StudentItem studentItem : studentItems) {
             String status = studentItem.getStatus();
             if (status != "P") status = "A";
+
+            //Sqlite status save
             long value = dbhelper.addStatus(studentItem.getSid(),cid,calender.getDate(),status);
             Log.e("pritom","status value "+value);
             if (value == -1) {
                 dbhelper.updateStatus(studentItem.getSid(),cid,calender.getDate(),status);
             }
+
+            //Firebase status save
+            reference = database.getReference(uid).child(fire_cid+"").child("student").child(studentItem.getRoll()+"");
+            Map<String,Object> map = new HashMap<>();
+            map.put("studentName",studentItem.getName());
+            map.put(changeDateFormat(calender.getDate()),status);
+            reference.updateChildren(map);
+
 
         }
         Toast.makeText(this,"Attendance saved",Toast.LENGTH_SHORT);           // To add
@@ -186,13 +205,22 @@ public class StudentActivity extends AppCompatActivity {
 
     private void addStudent(String roll_string, String name) {
         int roll = Integer.valueOf(roll_string);
+
+//        Sqlite data change
         long sid = dbhelper.addStudent(cid,roll,name);
-        Log.e("pritom",roll_string);
-//        int roll = 2;
         StudentItem studentItem = new StudentItem(sid, name,roll);
         studentItems.add(studentItem);
         Log.e("pritom",studentItem.getName()+studentItem.getRoll());
         adapter.notifyDataSetChanged();
+
+        //Firebase data add
+        reference = database.getReference(uid).child(fire_cid+"").child("student").child(roll_string);
+        Map<String,Object> map = new HashMap<>();
+        map.put("studentName",name);
+        map.put(changeDateFormat(calender.getDate())+"","P");
+        map.put("roll",roll_string);
+        Log.e("pritom","roll is "+roll);
+        reference.updateChildren(map);
     }
     @Override
     public boolean onContextItemSelected(@NonNull MenuItem item) {
@@ -214,16 +242,42 @@ public class StudentActivity extends AppCompatActivity {
     }
 
     private void updateStudent(int position, String name) {
+        //SQLite data change
         dbhelper.updateStudent(studentItems.get(position).getSid(),name);
         studentItems.get(position).setName(name);
         adapter.notifyItemChanged(position);
+
+        //Firebase data update
+        reference = database.getReference(uid).child(cid+"").child("student").child(studentItems.get(position).getSid()+"");
+        Map<String,Object> map = new HashMap<>();
+        map.put("studentName",name);
+        map.put(changeDateFormat(calender.getDate())+"",studentItems.get(position).getStatus());
+
     }
 
 
 
     private void deleteClass(int groupId) {
+        //SQLite Data delete
         dbhelper.deleteStudent(studentItems.get(groupId).getSid());
+
+        //Firebase data delete
+        reference = database.getReference(uid).child(cid+"").child("student").child(studentItems.get(groupId).getSid()+"");
+        reference.setValue(null);
+
         studentItems.remove(groupId);
         adapter.notifyDataSetChanged();
+    }
+
+    private String changeDateFormat(String date) {
+        String res = "";
+        for (int i = 0;i < date.length();i++) {
+            if (date.charAt(i) == '.') {
+                res += '-';
+                continue;
+            }
+            res += date.charAt(i);
+        }
+        return res;
     }
 }

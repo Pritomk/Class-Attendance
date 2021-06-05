@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -21,8 +22,17 @@ import com.example.classattendance.ui.ClassItem;
 import com.example.classattendance.ui.DatabaseHelper;
 import com.example.classattendance.ui.MyDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,12 +43,36 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<ClassItem> classItems = new ArrayList<>();
     Toolbar toolbar;
     DatabaseHelper dbhelper;
+    FirebaseAuth firebaseAuth;
+    ImageButton loginBtn;
+    FirebaseDatabase database;
+    DatabaseReference reference;
+    String uid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        classItems.add(new ClassItem("1st year","English"));
+
+        loginBtn = findViewById(R.id.iconSave);
+//        loginBtn.setVisibility(View.INVISIBLE);
+//        loginBtn.setBackgroundResource(R.drawable.signout_icon);
+
+        firebaseAuth = FirebaseAuth.getInstance();
+
+        if (firebaseAuth.getCurrentUser() == null) {
+            startActivity(new Intent(MainActivity.this,LoginActivity.class));
+        } else {
+            loginBtn.setOnClickListener(v -> {
+                firebaseAuth.signOut();
+                startActivity(new Intent(MainActivity.this,LoginActivity.class));
+            });
+        }
+
+        uid = firebaseAuth.getCurrentUser().getUid();
+
+        database = FirebaseDatabase.getInstance();
+
 
         dbhelper = new DatabaseHelper(this);
 
@@ -57,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         classAdapter.setOnItemClickListener(position -> goToItemActivity(position));
         setToolbar();
 //        Log.e("pritom",dbhelper.getClassTable().getString(1)+" yo");
+        classAdapter.notifyDataSetChanged();
     }
 
     private void loadData() {
@@ -77,13 +112,11 @@ public class MainActivity extends AppCompatActivity {
         TextView title = findViewById(R.id.title_toolbar);
         TextView subTitle = findViewById(R.id.subtitle_toolbar);
         ImageButton back = findViewById(R.id.backButton);
-        ImageButton save = findViewById(R.id.iconSave);
 
         title.setText("Attendance");
         title.setTextSize(25f);
         subTitle.setVisibility(View.GONE);
         back.setVisibility(View.INVISIBLE);
-        save.setVisibility(View.INVISIBLE);
     }
 
     private void goToItemActivity(int position) {
@@ -92,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("subjectName",classItems.get(position).getSubjectName());
         intent.putExtra("position",position);
         intent.putExtra("cid",classItems.get(position).getCid());
+        intent.putExtra("fire_cid",classItems.get(position).getClassName()+classItems.get(position).getSubjectName());
+        intent.putExtra("uid",uid);
         startActivity(intent);
     }
 
@@ -104,8 +139,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void addClass(String className,String subName) {
         long cid = dbhelper.addClass(className,subName);
-//        Log.e("pritom","cid is "+cid);
         ClassItem classItem = new ClassItem(cid,className,subName);
+
+        //Firebase data add
+        reference = database.getReference(uid+"").child(className+subName+"");
+        Map<String,Object> map = new HashMap<>();
+        map.put("className",className);
+        map.put("subName",subName);
+
+        reference.updateChildren(map);
 
         classItems.add(classItem);
         classAdapter.notifyDataSetChanged();
@@ -132,15 +174,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateClass(int position, String className, String subjectName) {
-        dbhelper.updateClass(classItems.get(position).getCid(),className,subjectName);
+        long cid = classItems.get(position).getCid();
+
+        dbhelper.updateClass(cid,className,subjectName);
         classItems.get(position).setClassName(className);
         classItems.get(position).setSubjectName(subjectName);
+
+        //Firebase data update
+        reference = database.getReference(uid+"").child(cid+"");
+        Map<String,Object> map = new HashMap<>();
+        map.put("className",className);
+        map.put("subName",subjectName);
+        reference.updateChildren(map);
+
         classAdapter.notifyDataSetChanged();
     }
 
     private void deleteClass(int groupId) {
         dbhelper.deleteClass(classItems.get(groupId).getCid());
+
+        //Firebase data update
+        reference = database.getReference(uid+"").child(classItems.get(groupId).getCid()+"");
+        reference.setValue(null);
+
         classItems.remove(groupId);
         classAdapter.notifyDataSetChanged();
+
     }
+
 }

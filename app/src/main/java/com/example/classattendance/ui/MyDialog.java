@@ -144,7 +144,8 @@ public class MyDialog extends DialogFragment {
             String name = nameEdit.getText().toString();              // Name and roll swapping mistake
             String roll = rollEdit.getText().toString();
             listener.onClick(roll,name);
-            dismiss();
+            rollEdit.setText(String.valueOf(Integer.parseInt(roll)+1));
+            nameEdit.setText("");
         });
 
         return builder.create();
